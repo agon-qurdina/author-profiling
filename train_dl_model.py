@@ -15,6 +15,7 @@ import pickle
 from gensim.models import KeyedVectors
 
 pan_dir = ''
+model_name = 'dl_model_a0_w0'
 
 def evaluate_model(model, X_val, y_val):
     y_predict = (np.asarray(model.predict(X_val))).round()
@@ -33,6 +34,9 @@ def evaluate_model(model, X_val, y_val):
 
     val_f1 = metrics.f1_score(y_val, y_predict)
     logging.info('F1 score: {}'.format(val_f1))
+
+    val_auc = metrics.roc_auc_score(y_val, y_predict)
+    logging.info('Auc score: {}'.format(val_auc))
 
     # model_plot_file = os.path.join(pan_dir, 'models', '{}.png'.format(final_model_name))
     # plot_model(model, to_file=model_plot_file, show_shapes=True, show_layer_names=True)
@@ -99,7 +103,9 @@ def define_conv_model(tokenizer, seq_len, filters=64, kernel_size=4, hidden_dims
 
     # embedding_layer = load_embedding_layer(tokenizer, seq_len=seq_len)
     vocab_size = len(tokenizer.word_index) + 1
-    embedding_layer = Embedding(input_dim=vocab_size, output_dim=100, input_length=seq_len)
+    print('seq_len: {}'.format(seq_len))
+    print('vocab_size: {}'.format(vocab_size))
+    embedding_layer = Embedding(input_dim=vocab_size, output_dim=300, input_length=seq_len)
     
     model.add(embedding_layer)
     model.add(Dropout(0.5))
@@ -129,9 +135,37 @@ def define_conv_model(tokenizer, seq_len, filters=64, kernel_size=4, hidden_dims
 
     return model
 
+def define_deep_conv_model(tokenizer, seq_len, filters=64, kernel_size=4, hidden_dims=256):
+    model = Sequential()
+
+    vocab_size = len(tokenizer.word_index) + 1
+    print('seq_len: {}'.format(seq_len))
+    embedding_layer = Embedding(input_dim=vocab_size, output_dim=300, input_length=seq_len)
+    model.add(embedding_layer)
+    model.add(Dropout(0.5))
+
+    for i in range(0, 5):
+      model.add(Conv1D(filters,
+                      kernel_size,
+                      activation='relu'))
+      model.add(Dropout(0.5))
+      model.add(MaxPooling1D(pool_size=2))
+
+    # model.add(GlobalMaxPooling1D())
+    model.add(Flatten())
+
+    for i in range(0, 2):
+      model.add(Dense(hidden_dims, 
+                      activation='relu'
+                      ))
+      model.add(Dropout(0.5))
+
+    model.add(Dense(1, activation='sigmoid'))
+
+    return model
+
 def train_model(model, X_train, y_train, X_val, y_val, batch_size, learning_rate):
   model_dir = os.path.join(pan_dir, 'data', 'models')
-  model_name = 'dl_model_a0_w0'
   model_location = os.path.join(model_dir, '{}.h5'.format(model_name))
   model_weights_location = os.path.join(model_dir, '{}_weights.h5'.format(model_name))
 

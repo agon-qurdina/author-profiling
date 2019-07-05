@@ -13,7 +13,7 @@ import string
 import math
 import numpy as np
 
-pan_dir_path = '/home/agon/Competitions/PAN - Author Profiling/'
+pan_dir_path = '/vol3/AuthorProfiling' # '/home/agon/Competitions/PAN - Author Profiling/'
 
 def isfloat(value):
   try:
